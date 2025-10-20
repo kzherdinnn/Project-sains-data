@@ -27,14 +27,8 @@ def load_data():
     df = pd.read_csv("cuaca_bandung_mapped_feature_engineered.csv")
     df['Tanggal'] = pd.to_datetime(df['Tanggal'])
     # Tambahkan kategori hujan
-    conditions = [
-        (df['Curah Hujan'] == 0),
-        (df['Curah Hujan'] > 0) & (df['Curah Hujan'] <= 10),
-        (df['Curah Hujan'] > 10) & (df['Curah Hujan'] <= 30),
-        (df['Curah Hujan'] > 30)
-    ]
     choices = ['Tidak Hujan', 'Hujan Ringan', 'Hujan Sedang', 'Hujan Lebat']
-    df['Kategori Hujan'] = pd.Categorical(pd.cut(df['Curah Hujan'], bins=[-1,0,10,30,1000], labels=choices))
+    df['Kategori Hujan'] = pd.cut(df['Curah Hujan'], bins=[-1,0,10,30,1000], labels=choices)
     # Tambahkan musim
     df['Musim'] = df['Bulan'].apply(lambda x: 'Hujan' if x in [11,12,1,2,3,4] else 'Kemarau')
     return df
@@ -109,7 +103,8 @@ with tab1:
         col4.markdown(f"<div class='metric-box'><h4>🌧️ Curah Hujan</h4><h2>{df_filtered['Curah Hujan'].mean():.1f} mm</h2></div>", unsafe_allow_html=True)
 
         st.markdown("### 📝 Contoh Data")
-        st.dataframe(df_filtered.head(10), use_container_width=True)
+        st.dataframe(df_filtered, use_container_width=True, height=400)  # ← scrollable
+
     else:
         st.warning("⚠️ Tidak ada data untuk filter yang dipilih.")
 
