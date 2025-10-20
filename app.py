@@ -105,41 +105,94 @@ with tab1:
 # --- TAB 2: Visualisasi ---
 with tab2:
     if not df_filtered.empty:
+        # === Insight Otomatis ===
+        st.subheader("💡 Ringkasan Cepat Data")
+        total_hari = len(df_filtered)
+        avg_suhu = df_filtered['Suhu Rata-rata'].mean()
+        avg_curah = df_filtered['Curah Hujan'].mean()
+        hujan_counts = df_filtered['Kategori Hujan'].value_counts(normalize=True) * 100
+        hari_tidak_hujan = hujan_counts.get('Tidak Hujan', 0)
+        hari_ringan = hujan_counts.get('Hujan Ringan', 0)
+        hari_sedang = hujan_counts.get('Hujan Sedang', 0)
+        hari_berat = hujan_counts.get('Hujan Lebat', 0)
+        musim_dominan = df_filtered['Musim'].mode()[0]
+        st.markdown(f"""
+        📅 **Total Hari:** {total_hari}  
+        🌡️ **Suhu Rata-rata:** {avg_suhu:.1f} °C  
+        🌧️ **Curah Hujan Rata-rata:** {avg_curah:.1f} mm  
+        ☀️ **Hari Tidak Hujan:** {hari_tidak_hujan:.1f}%  
+        🌦️ **Hari Hujan Ringan:** {hari_ringan:.1f}%  
+        🌧️ **Hari Hujan Sedang:** {hari_sedang:.1f}%  
+        ⛈️ **Hari Hujan Lebat:** {hari_berat:.1f}%  
+        🌍 **Musim Paling Dominan:** {musim_dominan}
+        """)
+
+        # === Grafik Tren Suhu & Curah Hujan ===
         st.subheader("📊 Tren Suhu & Curah Hujan")
+        st.markdown("Grafik ini menunjukkan **perubahan suhu dan curah hujan dari waktu ke waktu**.")
         fig_trend = px.line(
             df_filtered,
             x='Tanggal',
             y=['Suhu Rata-rata', 'Curah Hujan'],
             labels={'value':'Nilai','variable':'Parameter'},
-            title="📈 Grafik Suhu & Curah Hujan"
+            title="📈 Tren Cuaca Bandung",
+            color_discrete_map={'Suhu Rata-rata':'orange','Curah Hujan':'blue'}
         )
         fig_trend.update_layout(legend_title_text='Parameter', template='plotly_white')
         st.plotly_chart(fig_trend, use_container_width=True)
 
-        st.subheader("🔍 Heatmap Korelasi Variabel Cuaca")
+        # === Heatmap Korelasi ===
+        st.subheader("🔍 Korelasi Variabel Cuaca")
+        st.markdown("Heatmap menunjukkan **hubungan antar variabel cuaca** (1 = berkorelasi positif sempurna, -1 = negatif sempurna).")
         numeric_cols = ['Suhu Maksimum', 'Suhu Minimum', 'Suhu Rata-rata',
                         'Curah Hujan', 'Kelembaban', 'Kecepatan Angin_Max', 'Kecepatan Angin_Avg']
         corr = df_filtered[numeric_cols].corr()
-        fig_corr = px.imshow(corr, text_auto=True, aspect="auto", title="Heatmap Korelasi Cuaca")
+        fig_corr = px.imshow(corr, text_auto=True, aspect="auto", title="Heatmap Korelasi Cuaca", color_continuous_scale='Blues')
         st.plotly_chart(fig_corr, use_container_width=True)
 
+        # === Histogram Curah Hujan ===
         st.subheader("📊 Histogram Curah Hujan per Kategori")
-        fig_hist = px.histogram(df_filtered, x="Curah Hujan", color="Kategori Hujan", nbins=20, title="Distribusi Curah Hujan")
+        st.markdown("Menunjukkan **frekuensi hari berdasarkan intensitas hujan**.")
+        fig_hist = px.histogram(
+            df_filtered, x="Curah Hujan", color="Kategori Hujan", nbins=20,
+            color_discrete_map={'Tidak Hujan':'#A9A9A9','Hujan Ringan':'#00BFFF',
+                                'Hujan Sedang':'#1E90FF','Hujan Lebat':'#0000FF'},
+            title="Distribusi Curah Hujan"
+        )
         st.plotly_chart(fig_hist, use_container_width=True)
 
+        # === Box Plot Suhu per Musim ===
         st.subheader("📦 Box Plot Suhu Rata-rata per Musim")
-        fig_box = px.box(df_filtered, x="Musim", y="Suhu Rata-rata", color="Musim", title="Box Plot Suhu Rata-rata per Musim")
+        st.markdown("Menunjukkan **distribusi suhu rata-rata berdasarkan musim**.")
+        fig_box = px.box(
+            df_filtered, x="Musim", y="Suhu Rata-rata", color="Musim",
+            color_discrete_map={'Hujan':'#1E90FF','Kemarau':'#FFA500'},
+            title="Box Plot Suhu Rata-rata per Musim"
+        )
         st.plotly_chart(fig_box, use_container_width=True)
 
+        # === Pie Chart Kategori Hujan ===
         st.subheader("🥧 Pie Chart Kategori Hujan")
+        st.markdown("Menunjukkan **persentase jumlah hari berdasarkan kategori hujan**.")
         pie_data = df_filtered['Kategori Hujan'].value_counts().reset_index()
         pie_data.columns = ['Kategori Hujan','Jumlah']
-        fig_pie = px.pie(pie_data, names='Kategori Hujan', values='Jumlah', title="Proporsi Kategori Hujan")
+        fig_pie = px.pie(
+            pie_data, names='Kategori Hujan', values='Jumlah', title="Proporsi Kategori Hujan",
+            color_discrete_map={'Tidak Hujan':'#A9A9A9','Hujan Ringan':'#00BFFF',
+                                'Hujan Sedang':'#1E90FF','Hujan Lebat':'#0000FF'}
+        )
+        fig_pie.update_traces(textposition='inside', textinfo='percent+label')
         st.plotly_chart(fig_pie, use_container_width=True)
 
+        # === Scatter Plot Suhu vs Curah Hujan ===
         st.subheader("🔹 Scatter Plot Suhu vs Curah Hujan")
-        fig_scatter = px.scatter(df_filtered, x="Suhu Rata-rata", y="Curah Hujan", color="Kategori Hujan",
-                                 size="Kecepatan Angin_Max", hover_data=["Tanggal"], title="Suhu Rata-rata vs Curah Hujan")
+        st.markdown("Hubungan **suhu rata-rata vs curah hujan**, ukuran titik = kecepatan angin maksimum, warna = kategori hujan.")
+        fig_scatter = px.scatter(
+            df_filtered, x="Suhu Rata-rata", y="Curah Hujan", color="Kategori Hujan",
+            size="Kecepatan Angin_Max", hover_data=["Tanggal"],
+            labels={"Suhu Rata-rata":"Suhu (°C)","Curah Hujan":"Curah Hujan (mm)"},
+            title="Suhu Rata-rata vs Curah Hujan"
+        )
         st.plotly_chart(fig_scatter, use_container_width=True)
     else:
         st.warning("⚠️ Tidak ada data untuk filter yang dipilih.")
