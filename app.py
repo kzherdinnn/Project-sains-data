@@ -1,4 +1,3 @@
-# app.py
 import streamlit as st
 import pandas as pd
 import joblib
@@ -54,20 +53,18 @@ except FileNotFoundError:
 # === Load Model & Scaler ===
 @st.cache_resource
 def load_model():
-    model = joblib.load("model_prediksi_hujan.pkl")
-    scaler = joblib.load("scaler.pkl")
-    return model, scaler
+    try:
+        model = joblib.load("model_prediksi_hujan.pkl")
+        scaler = joblib.load("scaler.pkl")
+        return model, scaler
+    except:
+        st.error("❌ Model atau Scaler tidak ditemukan.")
+        st.stop()
 
-try:
-    model, scaler = load_model()
-except FileNotFoundError:
-    st.error("❌ File model atau scaler tidak ditemukan. Pastikan kedua file `.pkl` berada di folder yang sama dengan app.py.")
-    st.stop()
+model, scaler = load_model()
 
 # === SIDEBAR ===
 st.sidebar.title("🔧 Pengaturan Dashboard")
-st.sidebar.markdown("Gunakan filter berikut untuk menyesuaikan tampilan data:")
-
 tahun_list = sorted(df['Tahun'].unique())
 tahun = st.sidebar.selectbox("Pilih Tahun", tahun_list)
 bulan_list = sorted(df['Bulan'].unique())
@@ -79,12 +76,12 @@ if bulan:
 
 # === HEADER ===
 st.title("🌦️ Dashboard Analitik & Prediksi Cuaca — Bandung")
-st.markdown("> Analisis data historis & prediksi hujan Kota Bandung ☔")
+st.markdown("> Dashboard ini menyajikan **analisis data historis cuaca** dan **prediksi hujan** di Kota Bandung secara interaktif ☔")
 
-# === Tabs ===
+# === Tabs Navigasi ===
 tab1, tab2, tab3 = st.tabs(["📌 Ringkasan", "📈 Visualisasi", "🤖 Prediksi"])
 
-# === TAB 1 ===
+# === TAB 1: RINGKASAN ===
 with tab1:
     st.subheader("📌 Ringkasan Data Cuaca")
     if not df_filtered.empty:
@@ -99,7 +96,7 @@ with tab1:
     else:
         st.warning("⚠️ Tidak ada data untuk filter yang dipilih.")
 
-# === TAB 2 ===
+# === TAB 2: VISUALISASI ===
 with tab2:
     st.subheader("📊 Tren Cuaca")
     if not df_filtered.empty:
@@ -108,7 +105,7 @@ with tab2:
             x='Tanggal',
             y=['Suhu Rata-rata', 'Curah Hujan'],
             labels={'value': 'Nilai', 'variable': 'Parameter'},
-            title="📈 Tren Suhu & Curah Hujan"
+            title="📈 Grafik Suhu & Curah Hujan"
         )
         fig_trend.update_layout(legend_title_text='Parameter', template='plotly_white')
         st.plotly_chart(fig_trend, use_container_width=True)
@@ -116,36 +113,38 @@ with tab2:
         st.subheader("🔍 Korelasi Variabel Cuaca")
         numeric_cols = ['Suhu Maksimum', 'Suhu Minimum', 'Suhu Rata-rata',
                         'Curah Hujan', 'Kelembaban', 'Kecepatan Angin_Max',
-                        'Kecepatan Angin_Avg']
+                        'Kecepatan Angin_Avg', 'Arah_Angin_deg', 'SS']
         corr = df_filtered[numeric_cols].corr()
         fig_corr = px.imshow(corr, text_auto=True, aspect="auto", title="Heatmap Korelasi Cuaca")
         st.plotly_chart(fig_corr, use_container_width=True)
     else:
         st.warning("⚠️ Tidak ada data untuk filter yang dipilih.")
 
-# === TAB 3 ===
+# === TAB 3: PREDIKSI ===
 with tab3:
     st.subheader("🤖 Prediksi Hujan / Tidak Hujan")
-    st.info("Masukkan parameter cuaca untuk melakukan prediksi:")
+    st.info("Masukkan parameter cuaca sesuai format dataset:")
 
     col1, col2, col3 = st.columns(3)
     suhu_min = col1.number_input("Suhu Minimum (°C)", value=22.0)
     suhu_max = col2.number_input("Suhu Maksimum (°C)", value=30.0)
     suhu_avg = col3.number_input("Suhu Rata-rata (°C)", value=25.0)
-    curah = col1.number_input("Curah Hujan (mm)", value=5.0)
+    curah_hujan = col1.number_input("Curah Hujan (mm)", value=10.0)
     kelembaban = col2.number_input("Kelembaban (%)", value=75.0)
     angin_max = col3.number_input("Kecepatan Angin Maks (m/s)", value=5.0)
     angin_avg = col1.number_input("Kecepatan Angin Rata-rata (m/s)", value=3.0)
     arah_angin = col2.number_input("Arah Angin (°)", value=250.0)
-    ss = col3.number_input("SS (Sinar Matahari)", value=7.0)
+    ss = col3.number_input("SS", value=0.0)
 
     if st.button("🚀 Prediksi"):
         try:
-            input_data = [[suhu_min, suhu_max, suhu_avg, curah, kelembaban,
-                           angin_max, angin_avg, arah_angin, ss]]
-            input_scaled = scaler.transform(input_data)
-            pred = model.predict(input_scaled)[0]
-            prob = model.predict_proba(input_scaled)[0][1]
+            input_data = [[
+                suhu_max, suhu_min, suhu_avg, curah_hujan,
+                kelembaban, angin_max, angin_avg, arah_angin, ss
+            ]]
+            scaled_input = scaler.transform(input_data)
+            pred = model.predict(scaled_input)[0]
+            prob = model.predict_proba(scaled_input)[0][1]
 
             if pred == 1:
                 st.success(f"🌧 **Prediksi: HUJAN** (Probabilitas {prob*100:.1f}%)")
@@ -154,5 +153,5 @@ with tab3:
         except Exception as e:
             st.error(f"Terjadi kesalahan saat prediksi: {e}")
 
-# === FOOTER ===
+# === Footer ===
 st.markdown("<div class='footer'>✨ Dashboard Cuaca Bandung — dibuat dengan ❤️ dan Streamlit</div>", unsafe_allow_html=True)
