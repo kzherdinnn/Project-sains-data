@@ -70,18 +70,12 @@ musim_filter = st.sidebar.selectbox("Filter Musim:", musim_options)
 
 # === Terapkan Filter ===
 df_filtered = df.copy()
-
-# Filter tanggal
 if len(date_range) == 2:
     start_date, end_date = date_range
     df_filtered = df_filtered[(df_filtered["Tanggal"].dt.date >= start_date) &
                               (df_filtered["Tanggal"].dt.date <= end_date)]
-
-# Filter kategori hujan
 if kategori_hujan != 'Semua':
     df_filtered = df_filtered[df_filtered['Kategori Hujan'] == kategori_hujan]
-
-# Filter musim
 if musim_filter != 'Semua':
     df_filtered = df_filtered[df_filtered['Musim'] == musim_filter]
 
@@ -103,32 +97,50 @@ with tab1:
         col4.markdown(f"<div class='metric-box'><h4>🌧️ Curah Hujan</h4><h2>{df_filtered['Curah Hujan'].mean():.1f} mm</h2></div>", unsafe_allow_html=True)
 
         st.markdown("### 📝 Contoh Data")
-        st.dataframe(df_filtered, use_container_width=True, height=400)  # ← scrollable
+        st.dataframe(df_filtered, use_container_width=True, height=400)
 
     else:
         st.warning("⚠️ Tidak ada data untuk filter yang dipilih.")
 
 # --- TAB 2: Visualisasi ---
 with tab2:
-    st.subheader("📊 Tren Cuaca")
     if not df_filtered.empty:
+        st.subheader("📊 Tren Suhu & Curah Hujan")
         fig_trend = px.line(
             df_filtered,
             x='Tanggal',
             y=['Suhu Rata-rata', 'Curah Hujan'],
-            labels={'value': 'Nilai', 'variable': 'Parameter'},
+            labels={'value':'Nilai','variable':'Parameter'},
             title="📈 Grafik Suhu & Curah Hujan"
         )
         fig_trend.update_layout(legend_title_text='Parameter', template='plotly_white')
         st.plotly_chart(fig_trend, use_container_width=True)
 
-        st.subheader("🔍 Korelasi Variabel Cuaca")
+        st.subheader("🔍 Heatmap Korelasi Variabel Cuaca")
         numeric_cols = ['Suhu Maksimum', 'Suhu Minimum', 'Suhu Rata-rata',
-                        'Curah Hujan', 'Kelembaban', 'Kecepatan Angin_Max',
-                        'Kecepatan Angin_Avg']
+                        'Curah Hujan', 'Kelembaban', 'Kecepatan Angin_Max', 'Kecepatan Angin_Avg']
         corr = df_filtered[numeric_cols].corr()
         fig_corr = px.imshow(corr, text_auto=True, aspect="auto", title="Heatmap Korelasi Cuaca")
         st.plotly_chart(fig_corr, use_container_width=True)
+
+        st.subheader("📊 Histogram Curah Hujan per Kategori")
+        fig_hist = px.histogram(df_filtered, x="Curah Hujan", color="Kategori Hujan", nbins=20, title="Distribusi Curah Hujan")
+        st.plotly_chart(fig_hist, use_container_width=True)
+
+        st.subheader("📦 Box Plot Suhu Rata-rata per Musim")
+        fig_box = px.box(df_filtered, x="Musim", y="Suhu Rata-rata", color="Musim", title="Box Plot Suhu Rata-rata per Musim")
+        st.plotly_chart(fig_box, use_container_width=True)
+
+        st.subheader("🥧 Pie Chart Kategori Hujan")
+        pie_data = df_filtered['Kategori Hujan'].value_counts().reset_index()
+        pie_data.columns = ['Kategori Hujan','Jumlah']
+        fig_pie = px.pie(pie_data, names='Kategori Hujan', values='Jumlah', title="Proporsi Kategori Hujan")
+        st.plotly_chart(fig_pie, use_container_width=True)
+
+        st.subheader("🔹 Scatter Plot Suhu vs Curah Hujan")
+        fig_scatter = px.scatter(df_filtered, x="Suhu Rata-rata", y="Curah Hujan", color="Kategori Hujan",
+                                 size="Kecepatan Angin_Max", hover_data=["Tanggal"], title="Suhu Rata-rata vs Curah Hujan")
+        st.plotly_chart(fig_scatter, use_container_width=True)
     else:
         st.warning("⚠️ Tidak ada data untuk filter yang dipilih.")
 
