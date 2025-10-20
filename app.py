@@ -74,10 +74,23 @@ tahun = st.sidebar.selectbox("Pilih Tahun", tahun_list)
 bulan_list = sorted(df['Bulan'].unique())
 bulan = st.sidebar.multiselect("Pilih Bulan", bulan_list, default=[])
 
+# Filter Tanggal
+min_date = df["Tanggal"].min().date()
+max_date = df["Tanggal"].max().date()
+date_range = st.sidebar.date_input("Pilih rentang tanggal:", [min_date, max_date])
+
 # Terapkan Filter
 df_filtered = df[df['Tahun'] == tahun]
+
 if bulan:
     df_filtered = df_filtered[df_filtered['Bulan'].isin(bulan)]
+
+if len(date_range) == 2:
+    start_date, end_date = date_range
+    df_filtered = df_filtered[(df_filtered["Tanggal"].dt.date >= start_date) &
+                              (df_filtered["Tanggal"].dt.date <= end_date)]
+else:
+    df_filtered = df_filtered.copy()
 
 # === HEADER ===
 st.title("🌦️ Dashboard Analitik & Prediksi Cuaca — Bandung")
@@ -161,4 +174,4 @@ with tab3:
         st.error("❌ Model prediksi atau scaler tidak ditemukan. Pastikan file `model_prediksi_hujan.pkl` dan `scaler.pkl` sudah ada di folder yang sama.")
 
 # === Footer ===
-st.markdown("<div class='footer'>✨ Dashboard Cuaca Bandung — dibuat dengan ❤️ dan Streamlitt</div>", unsafe_allow_html=True)
+st.markdown("<div class='footer'>✨ Dashboard Cuaca Bandung — dibuat dengan ❤️ dan Streamlit</div>", unsafe_allow_html=True)
