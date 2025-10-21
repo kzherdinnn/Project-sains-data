@@ -11,34 +11,34 @@ st.set_page_config(
     page_icon="🌤️"
 )
 
-# === SIDEBAR: Mode Tema ===
+# === SIDEBAR: Tema ===
 st.sidebar.title("🎨 Pengaturan Tampilan")
-theme_mode = st.sidebar.radio("Pilih Tema:", ["Terang ☀️", "Gelap 🌙"])
+theme_mode = st.sidebar.radio("Mode Tampilan:", ["Terang ☀️", "Gelap 🌙"])
 
-# --- Styling CSS Dinamis Berdasarkan Tema ---
+# --- CSS Berdasarkan Mode Tema ---
 if theme_mode == "Terang ☀️":
-    background = "linear-gradient(135deg, #E0F7FA 0%, #80DEEA 100%)"
+    background_color = "linear-gradient(135deg, #E0F7FA 0%, #80DEEA 100%)"
     text_color = "#004D40"
     box_color = "white"
 else:
-    background = "linear-gradient(135deg, #263238 0%, #37474F 100%)"
-    text_color = "#E0F2F1"
+    background_color = "linear-gradient(135deg, #263238 0%, #37474F 100%)"
+    text_color = "#ECEFF1"
     box_color = "#455A64"
 
 st.markdown(f"""
     <style>
         .stApp {{
-            background: {background};
+            background: {background_color};
         }}
-        h1, h2, h3, h4, h5, h6, p, label {{
-            color: {text_color};
+        h1, h2, h3, h4, h5, h6, p, label, span {{
+            color: {text_color} !important;
             font-family: 'Segoe UI', sans-serif;
         }}
         .metric-box {{
             background: {box_color};
             padding: 15px;
             border-radius: 15px;
-            box-shadow: 0px 3px 10px rgba(0,0,0,0.1);
+            box-shadow: 0px 3px 10px rgba(0,0,0,0.15);
             text-align: center;
         }}
         .footer {{
@@ -130,12 +130,14 @@ with tab2:
         st.subheader("Tren Suhu & Curah Hujan")
         fig_trend = px.line(df_filtered, x='Tanggal', y=['Suhu Rata-rata', 'Curah Hujan'],
                             labels={'value':'Nilai','variable':'Parameter'}, title="Tren Cuaca Bandung")
+        fig_trend.update_layout(template='plotly_dark' if theme_mode == "Gelap 🌙" else 'plotly_white')
         st.plotly_chart(fig_trend, use_container_width=True)
 
         st.subheader("Korelasi Variabel Cuaca")
         numeric_cols = ['Suhu Maksimum', 'Suhu Minimum', 'Suhu Rata-rata', 'Curah Hujan', 'Kelembaban', 'Kecepatan Angin_Max', 'Kecepatan Angin_Avg']
         corr = df_filtered[numeric_cols].corr()
         fig_corr = px.imshow(corr, text_auto=True, aspect="auto", title="Heatmap Korelasi Cuaca", color_continuous_scale='Blues')
+        fig_corr.update_layout(template='plotly_dark' if theme_mode == "Gelap 🌙" else 'plotly_white')
         st.plotly_chart(fig_corr, use_container_width=True)
     else:
         st.warning("Tidak ada data untuk filter yang dipilih.")
