@@ -11,13 +11,42 @@ st.set_page_config(
     page_icon="🌤️"
 )
 
-# --- Styling CSS ---
-st.markdown("""
+# === SIDEBAR: Mode Tema ===
+st.sidebar.title("🎨 Pengaturan Tampilan")
+theme_mode = st.sidebar.radio("Pilih Tema:", ["Terang ☀️", "Gelap 🌙"])
+
+# --- Styling CSS Dinamis Berdasarkan Tema ---
+if theme_mode == "Terang ☀️":
+    background = "linear-gradient(135deg, #E0F7FA 0%, #80DEEA 100%)"
+    text_color = "#004D40"
+    box_color = "white"
+else:
+    background = "linear-gradient(135deg, #263238 0%, #37474F 100%)"
+    text_color = "#E0F2F1"
+    box_color = "#455A64"
+
+st.markdown(f"""
     <style>
-        .stApp { background: linear-gradient(135deg, #E0F7FA 0%, #80DEEA 100%); }
-        h1, h2, h3, h4 { color: #004D40; font-family: 'Segoe UI', sans-serif; }
-        .metric-box { background: white; padding: 15px; border-radius: 15px; box-shadow: 0px 3px 10px rgba(0,0,0,0.1); text-align: center; }
-        .footer { text-align: center; padding: 10px; font-size: 0.85em; color: #004D40; }
+        .stApp {{
+            background: {background};
+        }}
+        h1, h2, h3, h4, h5, h6, p, label {{
+            color: {text_color};
+            font-family: 'Segoe UI', sans-serif;
+        }}
+        .metric-box {{
+            background: {box_color};
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0px 3px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }}
+        .footer {{
+            text-align: center;
+            padding: 10px;
+            font-size: 0.85em;
+            color: {text_color};
+        }}
     </style>
 """, unsafe_allow_html=True)
 
@@ -50,8 +79,7 @@ def load_model():
 model, scaler = load_model()
 
 # === SIDEBAR FILTER ===
-st.sidebar.title("Pengaturan Dashboard")
-st.sidebar.markdown("Filter data cuaca:")
+st.sidebar.title("🔍 Filter Data Cuaca")
 
 min_date = df["Tanggal"].min().date()
 max_date = df["Tanggal"].max().date()
@@ -99,21 +127,6 @@ with tab1:
 # --- TAB 2: Visualisasi ---
 with tab2:
     if not df_filtered.empty:
-        st.subheader("Ringkasan Cepat Data")
-        total_hari = len(df_filtered)
-        avg_suhu = df_filtered['Suhu Rata-rata'].mean()
-        avg_curah = df_filtered['Curah Hujan'].mean()
-        hujan_counts = df_filtered['Kategori Hujan'].value_counts(normalize=True) * 100
-        st.markdown(f"""
-        Total Hari: {total_hari}  
-        Suhu Rata-rata: {avg_suhu:.1f} °C  
-        Curah Hujan Rata-rata: {avg_curah:.1f} mm  
-        Hari Tidak Hujan: {hujan_counts.get('Tidak Hujan',0):.1f}%  
-        Hari Hujan Ringan: {hujan_counts.get('Hujan Ringan',0):.1f}%  
-        Hari Hujan Sedang: {hujan_counts.get('Hujan Sedang',0):.1f}%  
-        Hari Hujan Lebat: {hujan_counts.get('Hujan Lebat',0):.1f}%
-        """)
-
         st.subheader("Tren Suhu & Curah Hujan")
         fig_trend = px.line(df_filtered, x='Tanggal', y=['Suhu Rata-rata', 'Curah Hujan'],
                             labels={'value':'Nilai','variable':'Parameter'}, title="Tren Cuaca Bandung")
@@ -124,25 +137,6 @@ with tab2:
         corr = df_filtered[numeric_cols].corr()
         fig_corr = px.imshow(corr, text_auto=True, aspect="auto", title="Heatmap Korelasi Cuaca", color_continuous_scale='Blues')
         st.plotly_chart(fig_corr, use_container_width=True)
-
-        st.subheader("Distribusi Curah Hujan")
-        fig_hist = px.histogram(df_filtered, x="Curah Hujan", color="Kategori Hujan", nbins=20, title="Distribusi Curah Hujan")
-        st.plotly_chart(fig_hist, use_container_width=True)
-
-        st.subheader("Box Plot Suhu per Musim")
-        fig_box = px.box(df_filtered, x="Musim", y="Suhu Rata-rata", color="Musim", title="Box Plot Suhu Rata-rata per Musim")
-        st.plotly_chart(fig_box, use_container_width=True)
-
-        st.subheader("Proporsi Kategori Hujan")
-        pie_data = df_filtered['Kategori Hujan'].value_counts().reset_index()
-        pie_data.columns = ['Kategori Hujan','Jumlah']
-        fig_pie = px.pie(pie_data, names='Kategori Hujan', values='Jumlah', title="Proporsi Kategori Hujan")
-        st.plotly_chart(fig_pie, use_container_width=True)
-
-        st.subheader("Suhu Rata-rata vs Curah Hujan")
-        fig_scatter = px.scatter(df_filtered, x="Suhu Rata-rata", y="Curah Hujan", color="Kategori Hujan",
-                                 size="Kecepatan Angin_Max", hover_data=["Tanggal"], title="Suhu vs Curah Hujan")
-        st.plotly_chart(fig_scatter, use_container_width=True)
     else:
         st.warning("Tidak ada data untuk filter yang dipilih.")
 
